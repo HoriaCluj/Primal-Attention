@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 ## Primal.+Trans. with feature maps realted to the 
 ## Cosine similarity kernel on queries and keys

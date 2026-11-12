@@ -1,0 +1,11 @@
+# Datasets: large, downloaded separately, never committed.
+data/
+PrimalAttention_TimeSeries/*/Multivariate_ts/
+
+# Python bytecode and local virtual environments.
+__pycache__/
+*.pyc
+.venv/
+
+# Time-series training outputs (checkpoints up to 72 MB each); results worth keeping are in analysis/.
+PrimalAttention_TimeSeries/*/experiments/
