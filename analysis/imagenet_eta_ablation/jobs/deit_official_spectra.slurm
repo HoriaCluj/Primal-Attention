@@ -34,11 +34,6 @@ torchrun --standalone --nproc_per_node=1 main.py --eval --resume "$DEIT_S_URL" \
     --model deit_small_patch16_224 --batch-size 256 --data-path "$IMAGENET1K_DIR" --data-set IMNET --num_workers 15 \
     | tee "$OUT/eval.txt"
 
-# (2) Spectra. analysis/imagenet_eta_ablation/figure1_spectra.py is NOT written yet (see PLAN.md 4.2 and 4.4).
-SPECTRA="$REPO_DIR/analysis/imagenet_eta_ablation/figure1_spectra.py"
-if [ ! -f "$SPECTRA" ]; then
-    echo "Skipping spectra: $SPECTRA does not exist yet." >&2
-    exit 0
-fi
-python "$SPECTRA" --model deit_official --checkpoint "$DEIT_S_URL" \
-    --data-path "$IMAGENET1K_DIR" --images-per-class 1 --out "$WORK_DIR/spectra"
+# (2) Spectra, written to a separate folder so the ImageNet-100 figures are not mixed with it.
+python "$REPO_DIR/analysis/imagenet_eta_ablation/figure1_spectra.py" --model deit_official --checkpoint "$DEIT_S_URL" \
+    --name deit_official --data-path "$IMAGENET1K_DIR" --images-per-class 1 --out "$WORK_DIR/spectra_in1k"
