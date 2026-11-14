@@ -14,10 +14,10 @@ actually changes: accuracy, the spectrum, and whether the KSVD optimality condit
 
 | Folder | Status | Setting |
 |---|---|---|
-| [imagenet_eta_ablation/](imagenet_eta_ablation/) | training done; spectra running | Primal.+DeiT-Small/16 on ImageNet-100, η ∈ {0, 0.05, 0.5}, plus a DeiT-Small/16 baseline, 300 epochs each on 4× H100 (VSC wICE cluster) |
+| [imagenet_eta_ablation/](imagenet_eta_ablation/) | finished. Report: [REPORT.md](imagenet_eta_ablation/REPORT.md) | Primal.+DeiT-Small/16 on ImageNet-100, η ∈ {0, 0.05, 0.5}, plus a DeiT-Small/16 baseline, 300 epochs each on 4× H100 (VSC wICE cluster) |
 | [timeseries_eta_ablation/](timeseries_eta_ablation/) | finished | Primal.+Trans. on UWaveGestureLibrary, η ∈ {0, 0.1, 0.2, 0.5} × 3 seeds. Report: [REPORT.md](timeseries_eta_ablation/REPORT.md) |
 
-## ImageNet-100 results so far
+## ImageNet-100 results
 
 The paper's training recipe (300 epochs, total batch 1024, DeiT augmentation and schedule), one seed per setting.
 Top-1 accuracy on the 5,000 validation images:
@@ -45,8 +45,16 @@ Top-1 accuracy on the 5,000 validation images:
 *Left: test top-1 per epoch. Middle: mean |J| per head on 32 fixed validation images. Right: KKT residual
 `(‖G_e‖² + ‖G_r‖²) / (‖W_e‖² + ‖W_r‖²)`. Single seed per curve.*
 
-**Pending:** the per-layer singular-value spectra (Figure 1 of the paper) for all four models, which test the paper's
-claim directly.
+- **The spectrum: sharp, but not because of η.** The Primal layer's kernel is far more concentrated than softmax
+  attention, as in the paper's Figure 1(c): 90% of its singular-value mass sits in 3–4 values against 35 for DeiT-S's last
+  layer (effective rank 4–5 against 22). But it is sharpest at **η = 0**, with no regularizer, and gets slightly flatter as
+  η grows (effective rank 3.9 → 4.5 → 5.0). The sharpness comes from the kernel form itself: a softmax built from the
+  same layer's q and k is *flatter* than DeiT's. The softmax layers 0–10 show no consistent η effect.
+
+![Per-layer spectra](imagenet_eta_ablation/figures/per_layer_c.png)
+
+*Normalized cumulative singular value per layer (mean over 1,000 validation images and 6 heads, ± std shaded). Layer 11 of
+the Primal.+ models is the Primal kernel.*
 
 **Caveats:** one seed per setting (seed-to-seed spread on ImageNet-100 is typically a few tenths of a point), ImageNet-100
 rather than the ImageNet-1K of the paper's Figure 1, and final-epoch checkpoints throughout.

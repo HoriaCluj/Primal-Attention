@@ -53,9 +53,9 @@ credit limit (send it to Claude).
 - [x] 13. Sanity run η = 0.05: **job 62653792**, 12 Nov 06:18–07:58 (1 h 40 min), 300 epochs, final test_acc1 73.96 (paper 75.7), J_log 1,807 rows, **250,316 credits**; balance 1,748,030
 - [x] 14. Done 13 Nov: η = 0 (job 62663183) 72.08% final / 72.20% best, 266,726 credits; η = 0.5 (62663184) 75.12 / 75.18, 262,644; DeiT-S (62663186) 73.48 / 73.66, 256,688. η = 0.05 best: 74.04 (epoch 274). Balance 961,970
 - [x] 15. Spectra script (Claude): `figure1_spectra.py` (compute) and `figure1_plots.py` (figures), tested on the local-test checkpoints
-- [ ] 16. Spectra job: **job 62689567** on `gpu_v100` (submitted 14 Nov 11:45)
-- [ ] 17. Copy results to the laptop
-- [ ] 18. Report (Claude)
+- [x] 16. Spectra job: **job 62689649** on `gpu_v100`, 14 Nov (62689567 failed: code not yet copied)
+- [x] 17. Copy results to the laptop, figures made
+- [x] 18. Report (Claude): [REPORT.md](REPORT.md)
 
 ---
 
