@@ -1,0 +1,4 @@
+- [Use H100 on VSC](vsc-use-h100.md) — run all wICE jobs, spectra included, on gpu_h100
+- [VSC account](vsc-account.md) — vsc39861 (KU Leuven), credit account intro_vsc39861, MFA certificate login
+- [η=1/10 wICE runs](vsc-eta-1-10-runs.md) — pending runs + spectra; read agent-context/vsc-eta-1-10.md first
+- [IN-1K full-run etas](in1k-full-runs-etas.md) — full runs: DeiT, η=0.05 (not 0), η=0.5
