@@ -240,6 +240,52 @@ def training_curves(logs_dir, path):
     plt.close(fig)
 
 
+SAFE_COLORS = ["#0072B2", "#E69F00", "#CC79A7", "#56B4E9", "#000000"]   # Okabe-Ito without green (red-green safe)
+SAFE_MARKERS = ["o", "s", "^", "D", "v"]
+
+
+def w_tracking(logs_dir, path):
+    """W_e / W_r of the Primal layer over training (W_log.csv, W_dirs.csv from train_with_j_log.py)."""
+    runs = sorted(d for d in glob.glob(os.path.join(logs_dir, "*")) if os.path.isfile(os.path.join(d, "W_log.csv")))
+    if not runs:
+        return
+    runs.sort(key=lambda d: float(os.path.basename(d).split("_eta")[1].split("_seed")[0]))
+    fig, axes = plt.subplots(1, 4, figsize=(22, 4.4))
+    for i, d in enumerate(runs):
+        color, marker = SAFE_COLORS[i % len(SAFE_COLORS)], SAFE_MARKERS[i % len(SAFE_MARKERS)]
+        label = "Primal.+ η = {:g}".format(float(os.path.basename(d).split("_eta")[1].split("_seed")[0]))
+        rows = {}
+        for row in csv.DictReader(open(os.path.join(d, "W_log.csv"))):
+            rows[(int(row["epoch"]), int(row["head"]))] = row                      # last row per (epoch, head) wins
+        epochs = sorted({e for e, _ in rows})
+        mean = lambda key: [np.mean([float(r[key]) for (e2, _), r in rows.items() if e2 == e]) for e in epochs]
+        style = dict(color=color, linewidth=1.5, marker=marker, markevery=max(1, len(epochs) // 10), markersize=5)
+        axes[0].plot(epochs, mean("we_fro"), label=label + ", W_e", **style)
+        axes[0].plot(epochs, mean("wr_fro"), linestyle="--", label=label + ", W_r", **style)
+        axes[1].plot(epochs, mean("cos_we_wr"), label=label, **style)
+        axes[2].plot(epochs, mean("we_eff_rank"), label=label + ", W_e", **style)
+        axes[2].plot(epochs, mean("wr_eff_rank"), linestyle="--", label=label + ", W_r", **style)
+        dirs = [r for r in csv.DictReader(open(os.path.join(d, "W_dirs.csv"))) if int(r["epoch"]) == epochs[-1]]
+        axes[3].scatter([float(r["lambda_abs"]) for r in dirs],
+                        [float(r["we_col_norm"]) * float(r["cw_e_norm"]) for r in dirs],
+                        s=12, color=color, marker=marker, alpha=0.6, label=label + " (epoch {})".format(epochs[-1]))
+    titles = ["‖W_e‖, ‖W_r‖ (Frobenius, mean over heads)", "cos(W_e, W_r) = Tr(W_eᵀW_r)/(‖W_e‖‖W_r‖)",
+              "Effective rank of W_e, W_r (of s)", "Per direction, last epoch: |λ_l| vs ‖W_e[:,l]‖·‖C[:,l]‖"]
+    for ax, title in zip(axes, titles):
+        ax.set_title(title, fontsize=11)
+        style_axes(ax, xlabel="Epoch", ylim=None)
+    axes[3].set_xscale("symlog", linthresh=1e-3)
+    axes[3].set_xlabel("|λ_l|  (symlog; < 1e-3 = collapsed)")
+    axes[3].set_ylabel("e-path weight reaching the output")
+    axes[0].legend(frameon=False, fontsize=7)
+    axes[3].legend(frameon=False, fontsize=7)
+    fig.text(0.01, 0.005, "Solid = W_e, dashed = W_r. C = concate_weight (shared by heads). Primal layer (block 11) only.",
+             fontsize=8, color="#52514e")
+    fig.tight_layout(rect=(0, 0.03, 1, 1))
+    fig.savefig(path, dpi=140)
+    plt.close(fig)
+
+
 def summary_csv(models, path):
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
@@ -291,6 +337,7 @@ def main():
         summary_csv(primal + others, os.path.join(results, "spectra_summary.csv"))
     if cli.logs:
         training_curves(cli.logs, os.path.join(figures, "training_curves.png"))
+        w_tracking(cli.logs, os.path.join(figures, "w_tracking.png"))
     print("wrote", figures, "and", results)
 
 

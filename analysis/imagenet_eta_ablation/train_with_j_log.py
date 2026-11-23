@@ -12,6 +12,12 @@ one row per head to <output_dir>/J_log.csv:
   residual_aggregate      (||G_e||^2 + ||G_r||^2) / (||W_e||^2 + ||W_r||^2), mean over images
   lambda_abs_min/max      range of |Lambda| for the head; lambda_near_zero counts |lambda| < 1e-3
 
+It also writes the Primal layer's parameters W_e, W_r (each n x s per head) after every epoch:
+  W_log.csv   per head: we_fro, wr_fro (Frobenius norms), trace_we_wr (Tr(W_e^T W_r), the coupling term
+              of J), cos_we_wr (that trace / (|W_e| |W_r|)), we_eff_rank, wr_eff_rank (exp entropy of sv/sum(sv))
+  W_dirs.csv  per head and direction l: |lambda_l|, column norms of W_e and W_r, and the norms of the two
+              concate_weight input columns that read e_l and r_l (shared by the heads), i.e. what reaches the output
+
 The formulas follow the code's objective (engine_primal.py:44-52): Lambda enters squared and token
 sums are means, so G_e = Phi'_q^T E Lambda^2 / N - W_r and G_r = Phi'_k^T R Lambda^2 / N - W_e,
 with Phi'_q = Phi_q F_X^T (see analysis/timeseries_eta_ablation/PHASE1_REPORT.md, Section 3).
@@ -78,6 +84,46 @@ def ksvd_diagnostics(phi_q, phi_k, fx_t, we, wr, lam):
     return j, num / (den[None] + 1e-12), num.sum(-1) / den[None].sum(-1)
 
 
+W_FIELDS = ["epoch", "head", "we_fro", "wr_fro", "trace_we_wr", "cos_we_wr", "we_eff_rank", "wr_eff_rank"]
+W_DIR_FIELDS = ["epoch", "head", "direction", "lambda_abs", "we_col_norm", "wr_col_norm", "cw_e_norm", "cw_r_norm"]
+
+
+def effective_rank(m):
+    sv = torch.linalg.svdvals(m)
+    p = sv / sv.sum()
+    return torch.exp(-(p * torch.log(p.clamp_min(1e-300))).sum()).item()
+
+
+def append_rows(path, fields, rows):
+    new_file = not os.path.exists(path)
+    with open(path, "a", newline="") as f:
+        writer = csv.writer(f)
+        if new_file:
+            writer.writerow(fields)
+        writer.writerows(rows)
+
+
+@torch.no_grad()
+def log_weights(attn, out_dir, epoch):
+    """Append this epoch's W_e / W_r summaries to W_log.csv and W_dirs.csv (see the module docstring)."""
+    we, wr = attn.we.detach().double().cpu(), attn.wr.detach().double().cpu()   # (H, n, s)
+    lam = attn.Lambda.detach().double().abs().cpu()                              # (H, s)
+    cw = attn.concate_weight.weight.detach().double().cpu()                      # (p, 2s): columns [e_1..e_s, r_1..r_s]
+    s = we.shape[-1]
+    cw_e, cw_r = cw[:, :s].norm(dim=0), cw[:, s:].norm(dim=0)
+    we_col, wr_col = we.norm(dim=1), wr.norm(dim=1)                              # (H, s)
+    head_rows, dir_rows = [], []
+    for h in range(we.shape[0]):
+        trace = (we[h] * wr[h]).sum().item()                                     # = Tr(W_e^T W_r), as in J
+        fro_e, fro_r = we[h].norm().item(), wr[h].norm().item()
+        head_rows.append([epoch, h, fro_e, fro_r, trace, trace / (fro_e * fro_r + 1e-300),
+                          effective_rank(we[h]), effective_rank(wr[h])])
+        dir_rows += [[epoch, h, l, lam[h, l].item(), we_col[h, l].item(), wr_col[h, l].item(),
+                      cw_e[l].item(), cw_r[l].item()] for l in range(s)]
+    append_rows(os.path.join(out_dir, "W_log.csv"), W_FIELDS, head_rows)
+    append_rows(os.path.join(out_dir, "W_dirs.csv"), W_DIR_FIELDS, dir_rows)
+
+
 class JLogger:
     def __init__(self, args):
         from datasets import build_transform
@@ -122,6 +168,7 @@ class JLogger:
                                  rho[:, h].mean().item(), rho[:, h].median().item(), agg[:, h].mean().item(),
                                  lam[h].min().item(), lam[h].max().item(), int((lam[h] < LAMBDA_NEAR_ZERO).sum()),
                                  j.shape[0]])
+        log_weights(attn, os.path.dirname(self.path), epoch)
 
 
 def main():
