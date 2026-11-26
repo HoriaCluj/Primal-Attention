@@ -13,3 +13,4 @@ metadata:
 - Scratch files not accessed for 30 days are purged.
 
 Related: [[vsc-use-h100]].
+- Since 2026-11-24 also in group/credit account `lp_robustness` (56.1M credits; shared lab project). Pass `sbatch --account=lp_robustness` on the command line: `SBATCH_ACCOUNT=intro_vsc39861` in ~/.bashrc overrides `#SBATCH --account`. gpu_h100: MaxTime 3 days, no per-user GPU cap (QOS normal).

@@ -15,6 +15,7 @@ actually changes: accuracy, the spectrum, and whether the KSVD optimality condit
 | Folder | Status | Setting |
 |---|---|---|
 | [imagenet_eta_ablation/](imagenet_eta_ablation/) | finished. Report: [REPORT.md](imagenet_eta_ablation/REPORT.md) | Primal.+DeiT-Small/16 on ImageNet-100, η ∈ {0, 0.05, 0.5}, plus a DeiT-Small/16 baseline, 300 epochs each on 4× H100 (VSC wICE cluster) |
+| [imagenet_eta_ablation/results_in1k/](imagenet_eta_ablation/results_in1k/) | finished. Results and Λ analysis: [README.md](imagenet_eta_ablation/results_in1k/README.md) | DeiT-Small/16 and Primal.+DeiT-Small/16 at η ∈ {0.05, 0.5} on ImageNet-1K, 300 epochs each on 4× H100: 79.92 / 79.66 / 79.65 % top-1 |
 | [timeseries_eta_ablation/](timeseries_eta_ablation/) | finished | Primal.+Trans. on UWaveGestureLibrary, η ∈ {0, 0.1, 0.2, 0.5} × 3 seeds. Report: [REPORT.md](timeseries_eta_ablation/REPORT.md) |
 
 ## ImageNet-100 results

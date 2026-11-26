@@ -177,6 +177,35 @@ normalized cumulative singular value against index, with DeiT-S plus η ∈ {0, 
       - GPU utilisation was not sampled (only memory), so whether the run is data-loader-bound (64 cores, ≈ 9.3k img/s) is unknown.
       - Copies on the Mac: `results_vsc39861/smoke_in1k/` (the `.out` files; the run dirs only if the rsync from scratch finished).
       - **Full runs (user decision 2026-11-23):** DeiT, Primal **η = 0.05** (replaces η = 0) and Primal η = 0.5, 300 epochs each.
+      - **Full-run job (2026-11-24): `jobs/train_in1k.slurm`** (`MODEL=deit` | `MODEL=primal ETA=…`), 300 epochs, `--time=20h`,
+        resumes on resubmit, outputs `$VSC_SCRATCH/primal_fig1/runs_in1k/<name>/`, logs/ckpts copied to `$VSC_DATA/primal_fig1/runs_in1k/<name>/`.
+        Credit account **`lp_robustness`** (56.1M credits), passed as `sbatch --account=lp_robustness` (the .bashrc
+        SBATCH_ACCOUNT would otherwise charge intro_vsc39861). `--test-only` passed for all three; md5s match the Mac.
+      - **SUBMITTED 2026-11-24** by Claude on the user's request, all on lp_robustness (balance 56,119,872 before):
+        62869857 = DeiT, 62869858 = Primal η = 0.05, 62869861 = Primal η = 0.5 (all job-name `train_in1k`; Slurm output
+        `jobs/train_in1k_<id>.out`). Check: `sacct -M wice -j 62869857,62869858,62869861 -X`, then
+        `tail -3 $VSC_DATA/primal_fig1/runs_in1k/<name>/log.txt`. Not finished -> resubmit the same command (resumes).
+      - **Status 2026-11-25 09:09:** DeiT 62869857 COMPLETED in 13:51 h (166 s/epoch), final top-1 79.92 % (best 79.95; paper
+        Table 7a: 79.8). Checkpoints and log are in $VSC_DATA. η = 0.05 62869858 RUNNING since 06:50, 48 epochs, 60.32 %
+        (DeiT at epoch 47: 60.69), about 174 s/epoch, so about 14.4 h, ending around 21:15 on 25 Nov. Λ collapsed (74–88 of 96 |λ| near 0,
+        residual ≈ 1, Jbar² 3e-5). η = 0.5 62869861 PENDING (Priority, fairshare 38); Slurm worst case 2026-12-02 03:00.
+        Other users' jobs aren't visible in squeue. lp_robustness: 53,705,908 (2.41M used, matching DeiT and the η = 0.05 run so far).
+      - **Status 2026-11-25 18:49:** η = 0.05 at epoch 226/300, 76.86 % (DeiT at 225: 77.27; gap about 0.4–0.7 pts since epoch 100),
+        about 191 s/epoch, so it should end around 22:45. No NaN. Λ now fully collapsed (96/96 near 0, max |λ| about 3e-8). η = 0.5 PENDING, est. start
+        2026-11-27 01:00. lp_robustness 52,256,488. Login gotcha: on 25 Nov login.hpc (login-genius) refused and login1/2 said
+        "no available backend" for hours; it came back by 18:49. login1/2 have the same ED25519 key (use HostKeyAlias=login.hpc.kuleuven.be).
+      - **Status 2026-11-25 23:18:** η = 0.05 COMPLETED 22:44 (15:54 h): **final 79.66 % top-1 (best 79.73 at ep 296), top-5 94.78**;
+        DeiT 79.92 (−0.27). Λ 96/96 near zero at the end, KKT residual 1.000, eff. rank W_e 76.6 / W_r 77.5, cos 0.000.
+        η = 0.5 RUNNING since 22:56, epoch 7 at 14.15 % (DeiT 12.08 at the same epoch), no spike after warmup yet, only 3–12 of 96
+        λ near 0, residual 2.56; it should finish around 13:04 on 26 Nov. The logs (no .pth) are on the Mac in `results_vsc39861/runs_in1k/`. Status
+        script: `bash $VSC_DATA/PrimalAttention/analysis/imagenet_eta_ablation/jobs/status_in1k.sh`. lp_robustness 51,611,788.
+      - **Status 2026-11-26 12:53:** η = 0.5 RUNNING at epoch 293/300, 79.68 % top-1 (best 79.68 at ep 292), top-5 94.89; DeiT at
+        the same epoch 79.91 (−0.23). No NaN, no errors. Λ has now collapsed too (96/96 near 0, max |λ| 2.9e-9, residual 1.000);
+        eff. rank W_e 74.7 / W_r 75.2, cos 0.000. Finishes ~13:13. lp_robustness 49,574,827. The Mac cert expired 01:08 on 26 Nov;
+        after the user's new login it took a minute to show in `ssh-add -l`.
+      - **Status 2026-11-26 18:25: all three COMPLETED (exit 0).** η = 0.5 (62869861) ended 13:13 after 14:17 h: **final 79.65 %
+        top-1 (best 79.84 at ep 293), top-5 94.86**; Λ 96/96 near zero, residual 1.000. Logs (no .pth) copied to the Mac; checkpoints
+        in `$VSC_DATA/primal_fig1/runs_in1k/<run>/`. lp_robustness 49,336,620.
   - Check `myquota` for a file-count limit first (about 1.33M files).
 - **Credits context:** measured by the smoke tests: about 2.0M per 300-epoch IN-1K run (Horia's PLAN.md said 4.55M; my
   earlier guess was 2.7–3.0M), against a balance of 1,552,133. Not even one full run fits in the intro credits.
@@ -186,3 +215,13 @@ normalized cumulative singular value against index, with DeiT-S plus η ∈ {0, 
   spectra after the spectra job.
 - `squeue`, `sbatch` and `scancel` need `-M wice` / `--clusters=wice`. The scripts set it for sbatch.
 - Charged for time used. `sam-quote` shows the requested maximum (6 h = about 900k), not the expected cost.
+
+## IN-1K regularizer analysis (2026-11-26)
+- Λ collapses in both η = 0.05 and η = 0.5 on the same schedule: max|λ| 0.11 / 0.055 / 0.026 at epochs 30 / 40 / 50
+  (η = 0.5: 0.11 / 0.057 / 0.029); all 576 λ < 1e-3 by epoch 80. KKT residual is exactly 1 from about epoch 20–30, which
+  is what Λ = 0 gives by the logger's definition (G_e = -W_r).
+- J̄² → 0 by cross-head cancellation: with Λ = 0, per-head J = -Tr(W_eᵀW_r) = -0.11, +0.15, +0.10, -0.04, -0.16, +0.06 at
+  epoch 299 (η = 0.05); the loss squares the head mean (engine_primal.py:47-50).
+- Likely cause: Λ isn't in the forward pass (models_primal.py:85), so CE gives it no gradient, and timm 0.4.12
+  add_weight_decay decays every non-1-D parameter, Λ (6×96) included, with wd = 0.05 at lr = 1e-3. lr·wd·1251 steps ≈ e^-0.6
+  per 10 epochs, which matches the observed halving between epochs 30 and 50. Positivity of Λ isn't enforced.
